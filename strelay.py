@@ -136,8 +136,7 @@ server_listen = connection.Server(args.listen, args.listen_port)
 while not shutdown:
     # Wait for client connection
     miner = server_listen.listen()
-    pool_connection = connection.Client(
-        controller.poolmap['pool'], controller.poolmap['port'])
+    pool_connection = connection.Client(controller.poolmap['pool'], controller.poolmap['port'])
     pool = pool_connection.connect()
     proxy = Proxy.Proxy(pool, sharestats=shares)
     proxy.set_auth(controller.poolmap['user'], controller.poolmap['pass'])

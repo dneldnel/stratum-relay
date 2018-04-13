@@ -155,7 +155,31 @@ class Proxy(object):
 
                 # Socket is ready to read
                 if flag & (select.POLLIN | select.POLLPRI):
-                    data = s.recv(8196).decode()
+                    try:
+                        raw=s.recv(8196)
+                        data=raw.decode()
+                        #data = s.recv(8196).decode()
+                        print("raw="+str(raw))
+                    except ConnectionResetError:
+                        self.log.error("ConnectionResetError happened. Going to close the connections")
+                        try:
+                            poller.unregister(s)
+                        except KeyError:
+                            self.log.error(
+                                "socket was not registered, wtf?")
+                        if fd in self.fd_to_socket:
+                            # try:
+                            #     self.fd_to_socket[s].shutdown(0)
+                            #     self.fd_to_socket[s].close()
+                            # except:
+                            #     pass
+                            del self.fd_to_socket[fd]
+                        if fd in self.miners_queue:
+                            del self.miners_queue[fd]
+                        #s.shutdown(0)
+                        s.close()
+                        continue
+                    self.log.info("data=" +data)
                     if data:
                         if self.pool is s:
                             self.log.debug("got msg from pool: %s" % data)
