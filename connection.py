@@ -44,8 +44,10 @@ class Server():
         self.log.info('waiting for new connections on %s:%s' %
                       (self.host, self.port))
         self.conn.listen(100)
+        self.log.info('1---------------------------')
         try:
             current_conn, addr = self.conn.accept()
+            self.log.debug('1.5----------------------------')
         except InterruptedError:
             return False
         current_conn.setblocking(1)

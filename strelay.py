@@ -15,6 +15,8 @@ import control
 import argparse
 
 
+#handling system signal 
+#signal.SIGINT=Ctrl-C
 def signal_handler(signal, frame):
     shutdown = True
     controller.shutdown = True
@@ -134,13 +136,17 @@ server_listen = connection.Server(args.listen, args.listen_port)
 
 
 while not shutdown:
-    # Wait for client connection
+    # Wait for client connection 
+    # miner is the socket that returned from listen() -> conn.accept()
     miner = server_listen.listen()
+    
     pool_connection = connection.Client(controller.poolmap['pool'], controller.poolmap['port'])
     pool = pool_connection.connect()
     proxy = Proxy.Proxy(pool, sharestats=shares)
     proxy.set_auth(controller.poolmap['user'], controller.poolmap['pass'])
+    print('going to add_miner')
     proxy.add_miner(miner)
+    print('add_miner emded')
     t = threading.Thread(target=proxy.start, args=[])
     t.daemon = True
     t.start()

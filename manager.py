@@ -2,6 +2,7 @@ import json
 import string
 import log
 import stratum_methods
+import time,timeit
 
 
 class Manager():
@@ -36,13 +37,15 @@ class Manager():
         self.jobs = {}
         self.jobs_pending_ids = {}
 
+
     def process(self, msg, is_pool=False):
+        #start =timeit.default_timer()
         output = ""
         for l in msg.splitlines():
             try:
                 jmsg = json.loads(l)
             except:
-                self.log.error("cannot decode %s" % l)
+                self.log.error("cannot decode json %s" % l)
                 self.log.error(msg)
                 continue
 
@@ -55,8 +58,8 @@ class Manager():
                     self.log.info("got user: %s/%s" % (user, passw))
                     self.real_username = user
                     self.real_password = passw
-                    jmsg['params'][0] = self.username
-                    jmsg['params'][1] = self.password
+                    #jmsg['params'][0] = self.username
+                    #jmsg['params'][1] = self.password
                     self.authid = jmsg['id']
 
                 elif jmsg['method'] == 'mining.notify' and ('params' in jmsg):
@@ -121,4 +124,6 @@ class Manager():
                                 jid, self.real_username, diff, False, self.sharenotify)
 
             output += json.dumps(jmsg) + '\n'
+        #elapsed = timeit.default_timer() - start
+        #print('manager.process() elapsed [%0.7fs] ' % elapsed)
         return output

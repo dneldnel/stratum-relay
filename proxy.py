@@ -47,15 +47,14 @@ class ProxyDB(object):
                     try:
                         self.db[p][1]._Thread__stop()
                     except:
-                        self.log.error("cannot stop thread!")
+                        self.log.error("ProxyDB.cleaner(): cannot stop thread!")
                     to_remove.append(p)
             for p in to_remove:
-                self.log.debug("removing proxy %s" % p)
+                self.log.debug("ProxyDB.cleaner():removing proxy %s" % p)
                 try:
                     del self.db[p]
                 except:
-                    self.log.debug(
-                        "diccionary has changed, cannot remove %s" % p)
+                    self.log.debug("ProxyDB.cleaner():dictionary has changed, cannot remove %s" % p)
             time.sleep(5)
 
 
@@ -106,6 +105,7 @@ class Proxy(object):
 
     def add_miner(self, connection):
         if connection:
+            
             self.miners_queue[connection.fileno()] = connection
             self.new_conns.append(connection)
             self.pool_queue.put(connection.recv(1024).decode())
@@ -141,15 +141,14 @@ class Proxy(object):
                 return False
 
             if len(self.new_conns) > 0:
-                self.fd_to_socket[
-                    self.new_conns[0].fileno()] = self.new_conns[0]
+                self.fd_to_socket[self.new_conns[0].fileno()] = self.new_conns[0]
                 poller.register(self.new_conns[0], READ_WRITE)
                 self.miners_queue[self.new_conns[0].fileno()] = queue.Queue()
                 del self.new_conns[0]
 
             pool_ack = False
             events = poller.poll(TIMEOUT)
-            for fd, flag in events:
+            for fd, flag in events: #返回的是(fileno,flag)的列表
                 # Retrieve the actual socket from its file descriptor
                 s = self.fd_to_socket[fd]
 
@@ -159,27 +158,27 @@ class Proxy(object):
                         raw=s.recv(8196)
                         data=raw.decode()
                         #data = s.recv(8196).decode()
-                        print("raw="+str(raw))
+                       # print("raw="+str(raw))
                     except ConnectionResetError:
                         self.log.error("ConnectionResetError happened. Going to close the connections")
                         try:
                             poller.unregister(s)
                         except KeyError:
-                            self.log.error(
-                                "socket was not registered, wtf?")
+                            self.log.error("socket was not registered, wtf?")
                         if fd in self.fd_to_socket:
-                            # try:
-                            #     self.fd_to_socket[s].shutdown(0)
-                            #     self.fd_to_socket[s].close()
-                            # except:
-                            #     pass
+                            try:
+                                #s.shutdown(0)
+                                s.close()
+                            except:
+                                self.log.error('Closing socket error')
+                                pass
                             del self.fd_to_socket[fd]
                         if fd in self.miners_queue:
                             del self.miners_queue[fd]
                         #s.shutdown(0)
                         s.close()
                         continue
-                    self.log.info("data=" +data)
+                    #self.log.info("data=" +data)
                     if data:
                         if self.pool is s:
                             self.log.debug("got msg from pool: %s" % data)
@@ -199,8 +198,7 @@ class Proxy(object):
                             try:
                                 poller.unregister(s)
                             except KeyError:
-                                self.log.error(
-                                    "socket was not registered, wtf?")
+                                self.log.error("socket was not registered, wtf?")
                             if fd in self.fd_to_socket:
                                 del self.fd_to_socket[fd]
                             if fd in self.miners_queue:
