@@ -37,6 +37,8 @@ class ProxyDB(object):
 
     def cleaner(self):
         while not self.shutdown:
+            # self.log.info('checking for proxy to be cleaned')
+            # self.log.info('total proxy %d' % len(self.db))
             to_remove = []
             for p in self.db.keys():
                 # if proxy is already mark as shutdown
@@ -49,13 +51,14 @@ class ProxyDB(object):
                     except:
                         self.log.error("ProxyDB.cleaner(): cannot stop thread!")
                     to_remove.append(p)
+            self.log.info('total proxy %d, to be cleaned %d' % (len(self.db),len(to_remove)))
             for p in to_remove:
                 self.log.debug("ProxyDB.cleaner():removing proxy %s" % p)
                 try:
                     del self.db[p]
                 except:
                     self.log.debug("ProxyDB.cleaner():dictionary has changed, cannot remove %s" % p)
-            time.sleep(5)
+            time.sleep(10)
 
 
 class Proxy(object):
@@ -133,6 +136,8 @@ class Proxy(object):
         pool_ack_counter = POOL_ITERATIONS_TIMEOUT
         while not self.shutdown:
 
+            #self.log.info('等待活动连接......')
+
             if iterations_to_die > 0:
                 iterations_to_die -= 1
 
@@ -148,12 +153,17 @@ class Proxy(object):
 
             pool_ack = False
             events = poller.poll(TIMEOUT)
+            if not events:
+                print('poll timed out') 
+                continue
+            #self.log.info('有%d个新事件，开始处理......' % len(events))
             for fd, flag in events: #返回的是(fileno,flag)的列表
                 # Retrieve the actual socket from its file descriptor
                 s = self.fd_to_socket[fd]
 
                 # Socket is ready to read
                 if flag & (select.POLLIN | select.POLLPRI):
+                    #self.log.info('Going into read mode')
                     try:
                         raw=s.recv(8196)
                         data=raw.decode()
@@ -161,23 +171,25 @@ class Proxy(object):
                        # print("raw="+str(raw))
                     except ConnectionResetError:
                         self.log.error("ConnectionResetError happened. Going to close the connections")
-                        try:
-                            poller.unregister(s)
-                        except KeyError:
-                            self.log.error("socket was not registered, wtf?")
-                        if fd in self.fd_to_socket:
-                            try:
-                                #s.shutdown(0)
-                                s.close()
-                            except:
-                                self.log.error('Closing socket error')
-                                pass
-                            del self.fd_to_socket[fd]
-                        if fd in self.miners_queue:
-                            del self.miners_queue[fd]
-                        #s.shutdown(0)
-                        s.close()
+                        self.close()
                         continue
+                        # try:
+                        #     poller.unregister(s)
+                        # except KeyError:
+                        #     self.log.error("socket was not registered, wtf?")
+                        # if fd in self.fd_to_socket:
+                        #     try:
+                        #         #s.shutdown(0)
+                        #         s.close()
+                        #     except:
+                        #         self.log.error('Closing socket error')
+                        #         pass
+                        #     del self.fd_to_socket[fd]
+                        # if fd in self.miners_queue:
+                        #     del self.miners_queue[fd]
+                        # #s.shutdown(0)
+                        # s.close()
+                        # continue
                     #self.log.info("data=" +data)
                     if data:
                         if self.pool is s:
@@ -208,6 +220,7 @@ class Proxy(object):
 
                 # Socket is ready for writing
                 elif flag & select.POLLOUT:
+                    #self.log.info('Going into write mode')
                     if self.pool is s:
                         if not self.pool_queue.empty():
                             msg = self.pool_queue.get()

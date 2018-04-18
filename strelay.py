@@ -144,9 +144,7 @@ while not shutdown:
     pool = pool_connection.connect()
     proxy = Proxy.Proxy(pool, sharestats=shares)
     proxy.set_auth(controller.poolmap['user'], controller.poolmap['pass'])
-    print('going to add_miner')
     proxy.add_miner(miner)
-    print('add_miner emded')
     t = threading.Thread(target=proxy.start, args=[])
     t.daemon = True
     t.start()

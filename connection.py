@@ -44,23 +44,21 @@ class Server():
         self.log.info('waiting for new connections on %s:%s' %
                       (self.host, self.port))
         self.conn.listen(100)
-        self.log.info('1---------------------------')
         try:
             current_conn, addr = self.conn.accept()
-            self.log.debug('1.5----------------------------')
         except InterruptedError:
             return False
         current_conn.setblocking(1)
         return current_conn
 
-    def recive(self):
-        data = self.current_conn.recv(1024).decode()
-        return data
+    # def recive(self):
+    #     data = self.current_conn.recv(1024).decode()
+    #     return data
 
-    def send(self, msg):
-        self.current_conn.sendall(msg.encode())
-        data = self.current_conn.recv(1024).decode()
-        return data
+    # def send(self, msg):
+    #     self.current_conn.sendall(msg.encode())
+    #     data = self.current_conn.recv(1024).decode()
+    #     return data
 
     def close(self):
         self.conn.shutdown(0)
