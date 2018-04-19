@@ -6,6 +6,7 @@ import socket
 import queue
 import manager
 import connection
+import binascii
 
 READ_ONLY = select.POLLIN | select.POLLPRI | select.POLLHUP | select.POLLERR
 READ_WRITE = READ_ONLY | select.POLLOUT
@@ -51,7 +52,7 @@ class ProxyDB(object):
                     except:
                         self.log.error("ProxyDB.cleaner(): cannot stop thread!")
                     to_remove.append(p)
-            self.log.info('total proxy %d, to be cleaned %d' % (len(self.db),len(to_remove)))
+            #self.log.info('total proxy %d, to be cleaned %d' % (len(self.db),len(to_remove)))
             for p in to_remove:
                 self.log.debug("ProxyDB.cleaner():removing proxy %s" % p)
                 try:
@@ -111,7 +112,7 @@ class Proxy(object):
             
             self.miners_queue[connection.fileno()] = connection
             self.new_conns.append(connection)
-            self.pool_queue.put(connection.recv(1024).decode())
+            self.pool_queue.put(connection.recv(1024).decode("utf8","ignore"))
             connection.setblocking(0)
 
     def miners_broadcast(self, msg):
@@ -136,7 +137,7 @@ class Proxy(object):
         pool_ack_counter = POOL_ITERATIONS_TIMEOUT
         while not self.shutdown:
 
-            #self.log.info('等待活动连接......')
+            #self.log.info('waiting for new connection')
 
             if iterations_to_die > 0:
                 iterations_to_die -= 1
@@ -156,8 +157,8 @@ class Proxy(object):
             if not events:
                 print('poll timed out') 
                 continue
-            #self.log.info('有%d个新事件，开始处理......' % len(events))
-            for fd, flag in events: #返回的是(fileno,flag)的列表
+            #self.log.info('%d new events, begin to process......' % len(events))
+            for fd, flag in events: #return a list of (fileno,flag)
                 # Retrieve the actual socket from its file descriptor
                 s = self.fd_to_socket[fd]
 
